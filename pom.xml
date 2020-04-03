@@ -55,8 +55,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- WildFly versions -->
-        <!-- http://download.eng.bos.redhat.com/brewroot/repos/jb-eap-7.2-maven-build/latest/maven/org/jboss/eap/wildfly-dist -->
-        <version.wildfly>7.2.5.GA-redhat-00001</version.wildfly>
+        <!-- http://download.eng.bos.redhat.com/brewroot/repos/jb-eap-7.2-maven-build/latest/maven/org/jboss/eap/wildfly-feature-pack -->
+        <version.wildfly>7.2.5.GA-redhat-00002</version.wildfly>
 
         <!-- Fuse version -->
         <version.fuse>7.6.0.fuse-760027</version.fuse>
@@ -75,6 +75,9 @@
         <version-maven-war-plugin>3.0.0</version-maven-war-plugin>
         <version-wildfly-maven-plugin>2.0.1.Final</version-wildfly-maven-plugin>
 
+        <!-- EAP server name -->
+        <jboss.server.name>jboss-eap-7.2</jboss.server.name>
+        
         <deploy.skip>true</deploy.skip>
     </properties>
 
@@ -222,47 +225,21 @@
     <!-- Repositories -->
     <repositories>
         <repository>
-            <id>central</id>
-            <url>http://repo.maven.apache.org/maven2</url>
+            <id>redhat-ga</id>
+            <url>https://maven.repository.redhat.com/ga/</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+                <checksumPolicy>ignore</checksumPolicy>
+            </releases>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
         </repository>
-        <repository>
-            <id>jboss-public</id>
-            <url>http://repository.jboss.org/nexus/content/groups/public</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>redhat-ga-repository</id>
-            <url>http://maven.repository.redhat.com/ga</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>fuse-ea</id>
-            <url>https://repository.jboss.org/nexus/content/groups/ea</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>eap72-brew</id>
-            <url>http://download.eng.bos.redhat.com/brewroot/repos/jb-eap-7.2-maven-build/latest/maven</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>fuse62-brew</id>
-            <url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fuse-6.2-build/latest/maven</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
+        <!--
+            For stuff that is not yet released ...
+            mvn clean install -s configuration/settings.xml -Pfuse-mirror  
+        -->
     </repositories>
 
     <!-- Modules -->
