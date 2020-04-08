@@ -1,0 +1,105 @@
+<!--
+  #%L
+  Wildfly Camel :: Example :: Camel CXF over JMS
+  %%
+  Copyright (C) 2013 - 2016 RedHat
+  %%
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+       http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  #L%
+  -->
+  <beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:jee="http://www.springframework.org/schema/jee"
+  xmlns:p="http://www.springframework.org/schema/p"
+  xmlns:cxf="http://camel.apache.org/schema/cxf"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
+                      http://www.springframework.org/schema/beans/spring-beans.xsd
+                      http://www.springframework.org/schema/jee
+                      http://www.springframework.org/schema/jee/spring-jee.xsd
+                      http://camel.apache.org/schema/cxf
+                      http://camel.apache.org/schema/cxf/camel-cxf.xsd
+                      http://camel.apache.org/schema/spring
+                      http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+    <jee:jndi-lookup id="connectionFactory" jndi-name="java:/JmsXA"/>
+    <!-- <jee:jndi-lookup id="transactionManager" jndi-name="java:/TransactionManager"/> -->
+
+
+    <bean id="jmsConfigConsumer" class="org.apache.cxf.transport.jms.JMSConfiguration">
+        <!-- <property name="transactionManager" ref="transactionManager"/> -->
+        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="targetDestination" value="Greeting"/>
+        <property name="deliveryMode" value="1"/> <!-- not persisted -->
+        <property name="pubSubDomain" value="false"/>
+        <property name="explicitQosEnabled" value="true"/>
+        <property name="concurrentConsumers" value="1"></property>
+        <property name="oneSessionPerConnection" value="true"></property>
+        <property name="replyToDestination" value="Greeting-reply"></property>
+    </bean>
+    <bean id="jmsConfigProducer" class="org.apache.cxf.transport.jms.JMSConfiguration">
+        <!-- <property name="transactionManager" ref="transactionManager"/> -->
+        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="targetDestination" value="Greeting" />
+        <property name="pubSubDomain" value="false"/>
+        <property name="explicitQosEnabled" value="true"/>
+        <property name="concurrentConsumers" value="1"></property>
+        <property name="oneSessionPerConnection" value="true"></property>
+        <property name="replyDestination" value="Greeting-reply"></property>
+    </bean>
+
+    <cxf:cxfEndpoint id="cxfConsumer" loggingFeatureEnabled="true" 
+        address="jms://"
+        serviceClass="org.wildfly.camel.examples.cxf.jaxws.GreetingService">
+        <cxf:features>
+            <bean class="org.apache.cxf.transport.jms.JMSConfigFeature" 
+            p:jmsConfig-ref="jmsConfigConsumer" />
+        </cxf:features>
+    </cxf:cxfEndpoint>
+
+    <cxf:cxfEndpoint id="cxfProducer"
+        address="jms://"
+        serviceClass="org.wildfly.camel.examples.cxf.jaxws.GreetingService">
+        <cxf:features>
+            <bean class="org.apache.cxf.transport.jms.JMSConfigFeature" 
+            p:jmsConfig-ref="jmsConfigProducer" />
+        </cxf:features>
+    </cxf:cxfEndpoint>
+
+    <bean id="greetingsProcessor" class="org.wildfly.camel.examples.cxf.jaxws.GreetingsProcessor" />
+
+    <camelContext id="cxfwsjms-camel-context" trace="true" xmlns="http://camel.apache.org/schema/spring">
+        <!--
+         This route defines a CXF producer endpoint which invokes a greeting web service.
+
+         CamelCxfWsServlet sends the required message and name parameters to the service by populating them
+         within the message exchange body.
+        -->
+        <route id="directToCxfrsBeanRoute">
+            <from id="directConsumer" uri="direct:start" />
+            <to id="cxfwsProducer" uri="cxf:bean:cxfProducer" />
+        </route>
+
+        <!--
+        This route defines a CXF consumer endpoint which handles requests made to the greeting web service.
+
+        GreetingsProcessor constructs a String greeting response to return back to the JAX-WS client.
+        -->
+        <route id="cxfConsumerToProcessorRoute">
+            <from id="cxfrsConsumer" uri="cxf:bean:cxfConsumer" />
+            <process id="processor" ref="greetingsProcessor" />
+        </route>
+    </camelContext>
+
+    <bean id="shutdownStrategy" class="org.apache.camel.impl.DefaultShutdownStrategy">
+        <property name="timeout" value="5" />
+    </bean>
+
+</beans>

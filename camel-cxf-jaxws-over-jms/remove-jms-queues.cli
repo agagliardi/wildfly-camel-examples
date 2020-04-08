@@ -1,0 +1,9 @@
+batch
+
+# Remove the JMS test queue
+
+/subsystem=messaging-activemq/server=default/jms-queue=Greeting:remove
+/subsystem=messaging-activemq/server=default/jms-queue=Greeting-reply:remove
+
+
+run-batch

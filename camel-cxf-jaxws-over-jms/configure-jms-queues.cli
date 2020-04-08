@@ -1,0 +1,7 @@
+batch
+
+# Configure the JMS test queue
+/subsystem=messaging-activemq/server=default/jms-queue=Greeting:add(entries=["java:/jms/queue/Greeting"])
+/subsystem=messaging-activemq/server=default/jms-queue=Greeting-reply:add(entries=["java:/jms/queue/Greeting-reply"])
+
+run-batch
