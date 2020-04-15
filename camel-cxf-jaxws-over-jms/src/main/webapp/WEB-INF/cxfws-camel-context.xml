@@ -15,12 +15,7 @@
   limitations under the License.
   #L%
   -->
-  <beans xmlns="http://www.springframework.org/schema/beans"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:jee="http://www.springframework.org/schema/jee"
-  xmlns:p="http://www.springframework.org/schema/p"
-  xmlns:cxf="http://camel.apache.org/schema/cxf"
-  xsi:schemaLocation="http://www.springframework.org/schema/beans
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jee="http://www.springframework.org/schema/jee" xmlns:p="http://www.springframework.org/schema/p" xmlns:cxf="http://camel.apache.org/schema/cxf" xsi:schemaLocation="http://www.springframework.org/schema/beans
                       http://www.springframework.org/schema/beans/spring-beans.xsd
                       http://www.springframework.org/schema/jee
                       http://www.springframework.org/schema/jee/spring-jee.xsd
@@ -29,47 +24,85 @@
                       http://camel.apache.org/schema/spring
                       http://camel.apache.org/schema/spring/camel-spring.xsd">
 
-    <jee:jndi-lookup id="connectionFactory" jndi-name="java:/JmsXA"/>
-    <!-- <jee:jndi-lookup id="transactionManager" jndi-name="java:/TransactionManager"/> -->
+
+    <bean name="brokerAJms" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="brokerAConnectionConfig" />
+    </bean>
+    <bean id="brokerAConnectionConfig" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="brokerAPooledConnectionFactory" />
+        <property name="concurrentConsumers" value="5" />
+        <property name="deliveryMode" value="1" />
+    </bean>
+
+    <bean id="brokerAPooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory" init-method="start" destroy-method="stop">
+        <property name="connectionFactory" ref="brokerAJmsConnectionFactory" />
+    </bean>
+
+    <bean id="brokerAJmsConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="tcp://localhost:61619?jms.rmIdFromConnectionId=true&amp;trace=true" />
+        <property name="userName" value="admin" />
+        <property name="password" value="admin" />
+        <!-- <property name="sendTimeout" value="${at.sys.clusteredBroker.sendTimeout}" /> -->
+        <property name="useCompression" value="true" />
+        <!-- <property name="redeliveryPolicy" ref="gepardRedelivery" /> -->
+
+    </bean>
+
+    <bean name="brokerBJms" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="brokerBConnectionConfig" />
+    </bean>
+    <bean id="brokerBConnectionConfig" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="brokerBPooledConnectionFactory" />
+        <property name="concurrentConsumers" value="5" />
+        <property name="deliveryMode" value="1" />
+    </bean>
+
+    <bean id="brokerBPooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory" init-method="start" destroy-method="stop">
+        <property name="connectionFactory" ref="brokerBJmsConnectionFactory" />
+    </bean>
+
+    <bean id="brokerBJmsConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="tcp://localhost:61617?jms.rmIdFromConnectionId=true&amp;trace=true" />
+        <property name="userName" value="admin" />
+        <property name="password" value="admin" />
+        <!-- <property name="sendTimeout" value="${at.sys.clusteredBroker.sendTimeout}" /> -->
+        <property name="useCompression" value="true" />
+        <!-- <property name="redeliveryPolicy" ref="gepardRedelivery" /> -->
+
+    </bean>
 
 
     <bean id="jmsConfigConsumer" class="org.apache.cxf.transport.jms.JMSConfiguration">
         <!-- <property name="transactionManager" ref="transactionManager"/> -->
-        <property name="connectionFactory" ref="connectionFactory"/>
-        <property name="targetDestination" value="Greeting"/>
-        <property name="deliveryMode" value="1"/> <!-- not persisted -->
-        <property name="pubSubDomain" value="false"/>
-        <property name="explicitQosEnabled" value="true"/>
+        <property name="connectionFactory" ref="brokerBPooledConnectionFactory" />
+        <property name="targetDestination" value="Greeting" />
+        <property name="deliveryMode" value="1" /> <!-- not persisted -->
+        <property name="pubSubDomain" value="false" />
+        <property name="explicitQosEnabled" value="true" />
         <property name="concurrentConsumers" value="1"></property>
         <property name="oneSessionPerConnection" value="true"></property>
         <property name="replyToDestination" value="Greeting-reply"></property>
     </bean>
     <bean id="jmsConfigProducer" class="org.apache.cxf.transport.jms.JMSConfiguration">
         <!-- <property name="transactionManager" ref="transactionManager"/> -->
-        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="connectionFactory" ref="brokerAPooledConnectionFactory" />
         <property name="targetDestination" value="Greeting" />
-        <property name="pubSubDomain" value="false"/>
-        <property name="explicitQosEnabled" value="true"/>
+        <property name="pubSubDomain" value="false" />
+        <property name="explicitQosEnabled" value="true" />
         <property name="concurrentConsumers" value="1"></property>
         <property name="oneSessionPerConnection" value="true"></property>
         <property name="replyDestination" value="Greeting-reply"></property>
     </bean>
 
-    <cxf:cxfEndpoint id="cxfConsumer" loggingFeatureEnabled="true" 
-        address="jms://"
-        serviceClass="org.wildfly.camel.examples.cxf.jaxws.GreetingService">
+    <cxf:cxfEndpoint id="cxfConsumer" loggingFeatureEnabled="true" address="jms://" serviceClass="org.wildfly.camel.examples.cxf.jaxws.GreetingService">
         <cxf:features>
-            <bean class="org.apache.cxf.transport.jms.JMSConfigFeature" 
-            p:jmsConfig-ref="jmsConfigConsumer" />
+            <bean class="org.apache.cxf.transport.jms.JMSConfigFeature" p:jmsConfig-ref="jmsConfigConsumer" />
         </cxf:features>
     </cxf:cxfEndpoint>
 
-    <cxf:cxfEndpoint id="cxfProducer"
-        address="jms://"
-        serviceClass="org.wildfly.camel.examples.cxf.jaxws.GreetingService">
+    <cxf:cxfEndpoint id="cxfProducer" address="jms://" serviceClass="org.wildfly.camel.examples.cxf.jaxws.GreetingService">
         <cxf:features>
-            <bean class="org.apache.cxf.transport.jms.JMSConfigFeature" 
-            p:jmsConfig-ref="jmsConfigProducer" />
+            <bean class="org.apache.cxf.transport.jms.JMSConfigFeature" p:jmsConfig-ref="jmsConfigProducer" />
         </cxf:features>
     </cxf:cxfEndpoint>
 
