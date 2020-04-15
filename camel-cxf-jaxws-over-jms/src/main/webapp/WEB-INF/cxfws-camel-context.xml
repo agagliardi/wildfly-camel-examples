@@ -29,7 +29,8 @@
                       http://camel.apache.org/schema/spring
                       http://camel.apache.org/schema/spring/camel-spring.xsd">
 
-    <jee:jndi-lookup id="connectionFactory" jndi-name="java:/JmsXA"/>
+    <jee:jndi-lookup id="connectionFactory" jndi-name="java:/jmsA"/>
+    <jee:jndi-lookup id="connectionFactoryB" jndi-name="java:/jmsB"/>
     <!-- <jee:jndi-lookup id="transactionManager" jndi-name="java:/TransactionManager"/> -->
 
 
@@ -46,7 +47,7 @@
     </bean>
     <bean id="jmsConfigProducer" class="org.apache.cxf.transport.jms.JMSConfiguration">
         <!-- <property name="transactionManager" ref="transactionManager"/> -->
-        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="connectionFactory" ref="connectionFactoryB"/>
         <property name="targetDestination" value="Greeting" />
         <property name="pubSubDomain" value="false"/>
         <property name="explicitQosEnabled" value="true"/>
