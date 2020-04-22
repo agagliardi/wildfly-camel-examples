@@ -29,30 +29,72 @@
                       http://camel.apache.org/schema/spring
                       http://camel.apache.org/schema/spring/camel-spring.xsd">
 
-    <jee:jndi-lookup id="connectionFactory" jndi-name="java:/jmsA"/>
-    <jee:jndi-lookup id="connectionFactoryB" jndi-name="java:/jmsB"/>
+    <!--<jee:jndi-lookup id="connectionFactory" jndi-name="java:/jmsA"/>-->
+    <!-- <jee:jndi-lookup id="connectionFactoryB" jndi-name="java:/jmsB"/>-->
     <!-- <jee:jndi-lookup id="transactionManager" jndi-name="java:/TransactionManager"/> -->
+
+    <bean id="gepardRedelivery" class="org.apache.activemq.RedeliveryPolicy">
+    	<property name="maximumRedeliveries" value="0"/>
+    </bean>
+
+
+	 <!-- 2. ESB broker connection bean. -->
+    <bean name="esbJms" class="org.apache.activemq.camel.component.ActiveMQComponent">
+    <property name="configuration" ref="jmsConfig" /> 
+	</bean>
+	
+	<bean id="jmsTransactedConfig" class="org.apache.camel.component.jms.JmsConfiguration"> 
+      <property name="connectionFactory" ref="esbPooledConnectionFactory"/> 
+      <property name="transactionManager" ref="esbTransactionManager"/> 
+      <property name="transacted" value="true"/>
+      <property name="cacheLevelName" value="CACHE_CONSUMER"/>
+      <property name="concurrentConsumers" value="5" />
+  </bean> 
+  
+  <bean id="jmsConfig" class="org.apache.camel.component.jms.JmsConfiguration"> 
+      <property name="connectionFactory" ref="esbPooledConnectionFactory"/> 
+      <property name="concurrentConsumers" value="5" />
+  </bean> 
+  
+	<bean id="esbConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+		<property name="brokerURL" value="failover:(tcp://localhost:61617?trace=true,tcp://localhost:61619?trace=true)?randomize=false&amp;maxReconnectAttempts=0" />
+		<property name="userName" value="admin" />
+		<property name="password" value="admin" />
+		<property name="sendTimeout" value="60000" />
+		<property name="redeliveryPolicy" ref="gepardRedelivery"/>
+	</bean>
+	
+	<bean id="esbTransactionManager"
+		class="org.springframework.jms.connection.JmsTransactionManager">
+		<property name="connectionFactory" ref="esbPooledConnectionFactory" />
+	</bean>
+	
+	<bean id="esbTransactionPolicy" class="org.apache.camel.spring.spi.SpringTransactionPolicy">
+  		<property name="transactionManager" ref="esbTransactionManager"/>
+	</bean>
+
+	<bean id="esbPooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory" init-method="start" destroy-method="stop">
+	<property name="connectionFactory" ref="esbConnectionFactory" />
+	</bean>
 
 
     <bean id="jmsConfigConsumer" class="org.apache.cxf.transport.jms.JMSConfiguration">
         <!-- <property name="transactionManager" ref="transactionManager"/> -->
-        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="connectionFactory" ref="esbPooledConnectionFactory"/>
         <property name="targetDestination" value="Greeting"/>
         <property name="deliveryMode" value="1"/> <!-- not persisted -->
         <property name="pubSubDomain" value="false"/>
         <property name="explicitQosEnabled" value="true"/>
-        <property name="concurrentConsumers" value="1"></property>
-        <property name="oneSessionPerConnection" value="true"></property>
+        <property name="concurrentConsumers" value="5"></property>
         <property name="replyToDestination" value="Greeting-reply"></property>
     </bean>
     <bean id="jmsConfigProducer" class="org.apache.cxf.transport.jms.JMSConfiguration">
         <!-- <property name="transactionManager" ref="transactionManager"/> -->
-        <property name="connectionFactory" ref="connectionFactoryB"/>
+        <property name="connectionFactory" ref="esbPooledConnectionFactory"/>
         <property name="targetDestination" value="Greeting" />
         <property name="pubSubDomain" value="false"/>
         <property name="explicitQosEnabled" value="true"/>
-        <property name="concurrentConsumers" value="1"></property>
-        <property name="oneSessionPerConnection" value="true"></property>
+        <property name="concurrentConsumers" value="5"></property>
         <property name="replyDestination" value="Greeting-reply"></property>
     </bean>
 
